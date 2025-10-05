@@ -1,4 +1,6 @@
 asyncio
+aiofiles
 pytest
 pytest-asyncio
 web3
+ruff
