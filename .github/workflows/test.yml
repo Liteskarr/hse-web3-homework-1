@@ -48,7 +48,7 @@ jobs:
         run: python3 -m venv .venv
       
       - name: Install python deps
-        run: python3 -m pip install requirements.txt
+        run: python3 -m pip install -r requirements.txt
 
       - name: Run tests
         run: python3 -m pytest bridge_watchdog/tests      
