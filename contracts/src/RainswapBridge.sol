@@ -17,22 +17,9 @@ struct Address {
     address wallet;
 }
 
-event Sended(
-    bytes32 nonce,
-    uint256 txID,
-    uint256 value,
-    Address sender,
-    Address receiver,
-    string receiverURL
-);
+event Sended(bytes32 nonce, uint256 txID, uint256 value, Address sender, Address receiver, string receiverURL);
 
-event Received(
-    bytes32 nonce,
-    uint256 txID,
-    uint256 value,
-    Address sender,
-    Address receiver
-);
+event Received(bytes32 nonce, uint256 txID, uint256 value, Address sender, Address receiver);
 
 contract RainswapBridge is Ownable {
     constructor(address initialOwner, address t) Ownable(initialOwner) {
@@ -40,19 +27,12 @@ contract RainswapBridge is Ownable {
         lastID = 1;
     }
 
-    function startTx(
-        uint256 value,
-        address sender,
-        Address calldata receiver,
-        string calldata receiverURL
-    ) public {
+    function startTx(uint256 value, address sender, Address calldata receiver, string calldata receiverURL) public {
         uint256 txID = lastID;
         lastID++;
 
         Address memory senderAddr = Address(address(this), sender);
-        bytes32 nonce = keccak256(
-            abi.encode(txID, value, senderAddr, receiver, receiverURL)
-        );
+        bytes32 nonce = keccak256(abi.encode(txID, value, senderAddr, receiver, receiverURL));
 
         require(IERC20(token).transferFrom(sender, address(this), value));
         Burnable(token).burn(value);
@@ -69,9 +49,7 @@ contract RainswapBridge is Ownable {
         string calldata receiverURL
     ) public {
         Address memory receiverAddr = Address(address(this), receiver);
-        bytes32 localNonce = keccak256(
-            abi.encode(txID, value, sender, receiverAddr, receiverURL)
-        );
+        bytes32 localNonce = keccak256(abi.encode(txID, value, sender, receiverAddr, receiverURL));
         require(nonce == localNonce);
 
         require(!receivedTxes[nonce]);

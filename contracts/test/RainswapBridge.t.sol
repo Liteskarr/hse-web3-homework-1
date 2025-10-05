@@ -31,8 +31,7 @@ contract TestRainswapBridge is Test {
         Address memory receiver,
         string memory receiverURL
     ) internal pure returns (bytes32) {
-        return
-            keccak256(abi.encode(txID, value, sender, receiver, receiverURL));
+        return keccak256(abi.encode(txID, value, sender, receiver, receiverURL));
     }
 
     function test_BridgeHappyPath() public {
