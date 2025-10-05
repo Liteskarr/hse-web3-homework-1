@@ -1,6 +1,5 @@
 import asyncio
 from contextlib import asynccontextmanager
-from typing import Any
 
 from web3 import AsyncWeb3, AsyncHTTPProvider
 

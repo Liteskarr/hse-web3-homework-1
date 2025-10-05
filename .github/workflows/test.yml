@@ -50,7 +50,7 @@ jobs:
       - name: Install python deps
         run: python3 -m pip install -r requirements.txt
 
-      - name: Run tests
+      - name: Run checks
         run: python3 -m ruff check .     
 
       - name: Run tests
