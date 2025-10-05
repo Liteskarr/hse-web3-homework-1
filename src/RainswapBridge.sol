@@ -12,63 +12,77 @@ interface Burnable {
     function burn(uint256 value) external;
 }
 
+struct Address {
+    address bridge;
+    address wallet;
+}
+
+event Sended(
+    bytes32 nonce,
+    uint256 txID,
+    uint256 value,
+    Address sender,
+    Address receiver,
+    string receiverURL
+);
+
+event Received(
+    bytes32 nonce,
+    uint256 txID,
+    uint256 value,
+    Address sender,
+    Address receiver
+);
+
 contract RainswapBridge is Ownable {
-    event TxStarted(address sender, address receiver, address secretHash, uint256 value, uint256 timeout);
-    event TxAborted(address secretHash, uint256 secret);
-    event TxCommited(address secretHash, uint256 secret);
-
-    error SecretHashCollision();
-
-    constructor(address initialOwner, address f, address t) Ownable(initialOwner) {
-        from = f;
-        to = t;
+    constructor(address initialOwner, address t) Ownable(initialOwner) {
+        token = t;
+        lastID = 1;
     }
 
-    function startTx(address receiver, address secretHash, uint256 value, uint256 timeout) public {
-        if (txes[secretHash].active) {
-            revert SecretHashCollision();
-        }
+    function startTx(
+        uint256 value,
+        address sender,
+        Address calldata receiver,
+        string calldata receiverURL
+    ) public {
+        uint256 txID = lastID;
+        lastID++;
 
-        address sender = _msgSender();
-        txes[secretHash] = TxBody(true, sender, receiver, value, timeout);
+        Address memory senderAddr = Address(address(this), sender);
+        bytes32 nonce = keccak256(
+            abi.encode(txID, value, senderAddr, receiver, receiverURL)
+        );
 
-        require(IERC20(from).transferFrom(sender, address(this), value));
+        require(IERC20(token).transferFrom(sender, address(this), value));
+        Burnable(token).burn(value);
 
-        emit TxStarted(sender, receiver, secretHash, value, timeout);
+        emit Sended(nonce, txID, value, senderAddr, receiver, receiverURL);
     }
 
-    function commit(address secretHash, uint256 secret) public {
-        TxBody memory body = txes[secretHash];
-        require(body.active, "No active Tx with the secret hash");
-        require(block.timestamp <= body.timeout, "Tx commiting are able only before timeout. Now you can abort it.");
+    function commit(
+        bytes32 nonce,
+        uint256 txID,
+        uint256 value,
+        Address calldata sender,
+        address receiver,
+        string calldata receiverURL
+    ) public {
+        Address memory receiverAddr = Address(address(this), receiver);
+        bytes32 localNonce = keccak256(
+            abi.encode(txID, value, sender, receiverAddr, receiverURL)
+        );
+        require(nonce == localNonce);
 
-        Burnable(from).burn(body.value);
-        Mintable(to).mint(body.receiver, body.value);
+        require(!receivedTxes[nonce]);
+        receivedTxes[nonce] = true;
 
-        delete txes[secretHash];
-        emit TxCommited(secretHash, secret);
+        Mintable(token).mint(receiver, value);
+
+        emit Received(nonce, txID, value, sender, receiverAddr);
     }
 
-    function abort(address secretHash, uint256 secret) public {
-        TxBody memory body = txes[secretHash];
-        require(body.active, "No active Tx with the secret hash");
-        require(block.timestamp > body.timeout, "Tx aborting are able only after timeout");
-
-        require(IERC20(from).transfer(body.sender, body.value));
-
-        delete txes[secretHash];
-        emit TxAborted(secretHash, secret);
-    }
-
-    struct TxBody {
-        bool active;
-        address sender;
-        address receiver;
-        uint256 value;
-        uint256 timeout;
-    }
-
-    address internal from;
-    address internal to;
-    mapping(address => TxBody) internal txes;
+    address internal token;
+    uint256 internal lastID;
+    mapping(bytes32 => bool) receivedTxes;
 }
