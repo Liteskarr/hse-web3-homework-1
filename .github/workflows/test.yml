@@ -12,7 +12,7 @@ env:
   FOUNDRY_PROFILE: ci
 
 jobs:
-  check:
+  foundry-check:
     name: Foundry project
     runs-on: ubuntu-latest
     steps:
@@ -35,3 +35,20 @@ jobs:
 
       - name: Run Forge tests
         run: cd contracts; forge test -vvv
+  watchdog-check:
+    name: Python project
+    runs-on: ubuntu-latest
+    steps: 
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          submodules: recursive
+      
+      - name: Creating venv
+        run: python3 -m venv .venv
+      
+      - name: Install python deps
+        run: python3 -m pip install requirements.txt
+
+      - name: Run tests
+        run: python3 -m pytest bridge_watchdog/tests      
